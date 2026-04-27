@@ -1,0 +1,94 @@
+{
+  /*
+   * CONFIGURAÇÃO BASE DO TYPESCRIPT — COMPARTILHADA POR TODOS OS WORKSPACES
+   *
+   * Cada workspace (apps/api, apps/web, packages/types) herda este arquivo via
+   * "extends": "../../tsconfig.base.json" e sobrescreve apenas o necessário,
+   * como `outDir`, `rootDir`, `include` e configurações específicas de framework.
+   *
+   * Objetivo: garantir consistência de compilação e regras estritas em todo
+   * o monorepo sem repetir configuração.
+   */
+  "compilerOptions": {
+
+    /*
+     * TARGET E MÓDULOS
+     *
+     * ES2022 oferece suporte a `await` no nível do módulo (top-level await),
+     * class fields nativas e outras features modernas que tanto o Node 20
+     * quanto os browsers modernos suportam nativamente.
+     *
+     * "bundler" como moduleResolution delega a resolução de imports ao bundler
+     * (Vite, Next.js, tsx) e permite path aliases sem configuração extra.
+     */
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+
+    /*
+     * RIGOR DE TIPAGEM
+     *
+     * `strict: true` habilita um conjunto de verificações que previnem bugs
+     * silenciosos: strictNullChecks, noImplicitAny, strictFunctionTypes, etc.
+     *
+     * `noUncheckedIndexedAccess` é especialmente importante para arrays e
+     * records: sem ele, `arr[0]` tem tipo `T` mesmo que o array possa estar
+     * vazio; com ele, o tipo fica `T | undefined`, forçando checagem explícita.
+     *
+     * `exactOptionalPropertyTypes` impede que propriedades opcionais recebam
+     * `undefined` explicitamente — distingue `{ a?: string }` de `{ a: string | undefined }`.
+     */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /*
+     * INTEROPERABILIDADE COM CommonJS
+     *
+     * Muitas dependências do ecossistema Node.js ainda publicam em CJS.
+     * `esModuleInterop` permite usar `import X from 'modulo-cjs'` sem erros,
+     * em vez de `import * as X from 'modulo-cjs'`.
+     */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /*
+     * DECORATORS
+     *
+     * Habilitado para compatibilidade com bibliotecas que utilizam decorators
+     * (ex: algumas integrações do Fastify e futuros ORM adapters).
+     */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /*
+     * RESOLUÇÃO DE PATHS
+     *
+     * `baseUrl` é definido em "." para que os workspaces filhos possam
+     * configurar aliases relativos a si mesmos (ex: "@/*": ["./src/*"]).
+     */
+    "baseUrl": ".",
+
+    /*
+     * VERIFICAÇÃO SEM EMISSÃO
+     *
+     * `skipLibCheck` evita verificação de tipos em arquivos .d.ts de
+     * dependências externas — acelera o typecheck sem perder segurança
+     * no código próprio do projeto.
+     */
+    "skipLibCheck": true,
+
+    /*
+     * ISOLAMENTO DE MÓDULOS
+     *
+     * Necessário quando se usa um transpilador por arquivo (tsx, esbuild, swc),
+     * que é o caso do Next.js e do tsx no modo de desenvolvimento da API.
+     * Impede o uso de imports de tipo puro sem a keyword `import type`.
+     */
+    "isolatedModules": true
+  }
+}
