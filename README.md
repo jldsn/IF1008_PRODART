@@ -33,12 +33,30 @@ Backoffice integrado que funciona como **ponte** sobre os processos existentes d
 ```
 prodarte/
 ├── apps/
-│   ├── api/          → API REST (Fastify + Prisma + PostgreSQL)
-│   └── web/          → Backoffice (Next.js 15 + Tailwind CSS)
+│   ├── api/                    → API REST (Fastify + Prisma + PostgreSQL)
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma   → Definição dos modelos e enums do banco
+│   │   │   └── seed.ts         → Script para popular o banco em desenvolvimento
+│   │   └── src/
+│   │       ├── db/             → Queries Prisma organizadas por entidade
+│   │       ├── plugins/        → Plugins Fastify (autenticação JWT, CORS, Swagger)
+│   │       ├── rotas/          → Handlers HTTP agrupados por recurso
+│   │       ├── app.ts          → Fábrica do servidor Fastify (registra plugins e rotas)
+│   │       └── index.ts        → Ponto de entrada — inicia o servidor
+│   └── web/                    → Backoffice (Next.js 15 + Tailwind CSS)
+│       └── src/
+│           ├── app/            → App Router do Next.js (layouts, páginas, Server Actions)
+│           ├── components/     → Componentes React reutilizáveis
+│           └── lib/            → Utilitários e cliente HTTP para a API
 ├── packages/
-│   └── types/        → Tipos TypeScript compartilhados entre api e web
-├── package.json      → Configuração do npm workspaces (raiz)
-└── tsconfig.base.json → Configuração base do TypeScript (herdada por todos)
+│   └── types/                  → Tipos TypeScript compartilhados entre api e web
+│       └── src/
+│           ├── artesao.ts      → Tipos e enums do domínio Artesão
+│           ├── feira.ts        → Tipos do domínio Feira e Alocação
+│           ├── curadoria.ts    → Tipos do fluxo de curadoria
+│           └── index.ts        → Re-exporta todos os tipos públicos
+├── package.json                → Configuração do npm workspaces (raiz)
+└── tsconfig.base.json          → Configuração base do TypeScript (herdada por todos)
 ```
 
 ### Por que monorepo?
@@ -46,6 +64,18 @@ prodarte/
 - `apps/api` e `apps/web` compartilham os tipos de domínio de `packages/types`
 - Evita duplicação: mudanças nos tipos são refletidas automaticamente nos dois apps
 - Um único `npm install` na raiz instala todas as dependências
+
+### Por que estrutura por camadas na API?
+
+A API segue uma divisão simples em três camadas horizontais, sem abstrações desnecessárias:
+
+| Camada | Pasta | Responsabilidade |
+|--------|-------|-----------------|
+| **HTTP** | `src/rotas/` | Receber requisições, validar entrada com Zod, retornar respostas |
+| **Dados** | `src/db/` | Executar queries no Prisma — uma função por operação |
+| **Infraestrutura** | `src/plugins/` | Configurar JWT, CORS, Swagger e outros plugins do Fastify |
+
+Cada rota chama diretamente as funções de `db/`, sem uma camada de serviços intermediária. Isso é suficiente para o escopo atual do backoffice e mantém o código rastreável sem indireção desnecessária.
 
 ---
 
