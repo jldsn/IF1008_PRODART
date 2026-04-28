@@ -15,7 +15,8 @@ import { criarApp } from './app.js'
 
 // Porta padrão 3001 para evitar conflito com o Next.js, que usa 3000.
 const PORTA = Number(process.env['PORT']) || 3001
-const HOST = process.env['NODE_ENV'] === 'production' ? '0.0.0.0' : '127.0.0.1'
+const HOST =
+  process.env['HOST'] ?? (process.env['NODE_ENV'] === 'production' ? '0.0.0.0' : '127.0.0.1')
 
 async function iniciar(): Promise<void> {
   const app = await criarApp()

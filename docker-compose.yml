@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:15-bookworm
+    container_name: prodarte-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: prodarte
+    ports:
+      - "${POSTGRES_HOST_PORT:-5452}:5452"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d prodarte"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      target: api-dev
+    container_name: prodarte-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/prodarte?schema=public
+      JWT_SECRET: troque-este-valor-em-producao
+      JWT_EXPIRATION: 7d
+      WHATSAPP_TOKEN: ""
+      WHATSAPP_PHONE_ID: ""
+      UPLOAD_MAX_BYTES: 5242880
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - api_node_modules:/app/node_modules
+    command: >
+      sh -c "npm install
+      && npm --workspace @prodarte/api run db:generate
+      && npm --workspace @prodarte/api run db:migrate -- --name init
+      && npm --workspace @prodarte/api run dev"
+
+  web:
+    build:
+      context: .
+      target: web-dev
+    container_name: prodarte-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: development
+      INTERNAL_API_URL: http://api:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - web_node_modules:/app/node_modules
+    command: >
+      sh -c "npm install
+      && npm --workspace @prodarte/web run dev -- --hostname 0.0.0.0"
+
+volumes:
+  postgres_data:
+  api_node_modules:
+  web_node_modules:

@@ -1,0 +1,16 @@
+.git
+.codex
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+dist
+build
+.next
+out
+coverage
+.env
+.env.local
+.env.development
+.env.production
+*.log
+*.tsbuildinfo

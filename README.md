@@ -108,6 +108,50 @@ cd ../..
 npm run dev
 ```
 
+## Rodando com Docker
+
+O projeto também pode ser executado com Docker Compose, subindo três serviços:
+
+| Serviço | Porta | Finalidade |
+|---------|-------|------------|
+| `postgres` | `5433` no host, `5432` entre containers | Banco PostgreSQL 15 |
+| `api` | `3001` | API Fastify em modo desenvolvimento |
+| `web` | `3000` | Backoffice Next.js em modo desenvolvimento |
+
+```bash
+# Subir banco, API e frontend
+npm run docker:up
+
+# Acessar o backoffice
+# http://localhost:3000
+
+# Acessar a API
+# http://localhost:3001/health
+
+# Acessar o Postgres pelo host, se necessário
+# postgresql://postgres:postgres@localhost:5433/prodarte?schema=public
+
+# Derrubar os containers
+npm run docker:down
+```
+
+Na primeira execução, o container da API instala dependências, gera o Prisma Client
+e executa `prisma migrate dev` contra o PostgreSQL do Compose. Os dados do banco
+ficam preservados no volume `postgres_data`.
+
+Se a porta `5433` também estiver ocupada, escolha outra porta no host:
+
+```bash
+POSTGRES_HOST_PORT=5434 npm run docker:up
+```
+
+Para executar comandos Prisma manualmente dentro do container:
+
+```bash
+docker compose exec api npm --workspace @prodarte/api run db:seed
+docker compose exec api npm --workspace @prodarte/api run db:studio
+```
+
 ---
 
 ## Perfis de usuário
