@@ -1,0 +1,71 @@
+{
+  "inscricao": {
+    "tipoInscricao": "Nova inscrição", 
+    "tipoCadastro": "Empreendedor",
+    "segmento": "Artesanato",
+    "produtoEspecifico": "Bolsas de couro" 
+  },
+  "dadosPessoais": {
+    "cpf": "123.456.789-00",
+    "nomeCompleto": "Maria da Silva",
+    "nomeSocial": "",
+    "documentoIdentidade": "1234567 SSP/PE",
+    "dataNascimento": "1985-10-22",
+    "nomeMae": "Josefa da Silva",
+    "nomePai": "João da Silva",
+    "genero": "Feminino",
+    "autodeclaracaoCorIbge": "Parda",
+    "email": "maria.silva@email.com",
+    "celular": "(81) 99999-9999"
+  },
+  "endereco": {
+    "cep": "50000-000",
+    "logradouro": "Rua da Aurora",
+    "numero": "123",
+    "complemento": "Apt 402",
+    "bairro": "Boa Vista",
+    "cidade": "Recife",
+    "estado": "PE"
+  },
+  "marcaPresencaDigital": {
+    "possuiCarteiraArtesao": true,
+    "numeroCarteira": "987654321",
+    "nomeMarca": "Arte da Maria",
+    "instagram": "@artedamaria"
+  },
+  "formalizacao": {
+    "possuiMei": true,
+    "cnpj": "12.345.678/0001-90",
+    "nomeFantasia": "Arte da Maria ME",
+    "desejaFormalizar": false,
+    "desejaAbrirMeiAgora": false
+  },
+  "pertencimento": {
+    "pertenceAssociacaoCooperativa": false,
+    "descricaoAssociacaoCooperativa": "",
+    "descricaoTrabalho": "Produção artesanal de bolsas utilizando retalhos de couro reciclável."
+  },
+  "socioeconomicoEDivulgacao": {
+    "tempoAtividade": "De 1 a 2 anos",
+    "rendimentoMedioMensal": "De 1 a 2 salários mínimos",
+    "comoFicouSabendo": "Redes sociais",
+    "especificarOrganizador": "",
+    "informeComoFicouSabendo": "Instagram"
+  },
+  "documentosAnexos": {
+    "documentoOficialFrente": "url_ou_base64_da_frente_do_rg",
+    "documentoOficialVerso": "url_ou_base64_do_verso_do_rg",
+    "comprovanteResidencia": "url_ou_base64_do_comprovante",
+    "certificadoMeiOuCnpj": "url_ou_base64_do_certificado",
+    "portfolio": [
+      "url_ou_base64_foto_1",
+      "url_ou_base64_foto_2",
+      "url_ou_base64_foto_3",
+      "url_ou_base64_foto_4"
+    ]
+  },
+  "termosEAssinaturas": {
+    "aceiteAutodeclaracaoEtnicoRacial": true,
+    "aceiteDeclaracaoResponsabilidade": true
+  }
+}
