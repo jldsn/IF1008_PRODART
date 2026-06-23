@@ -24,58 +24,58 @@ Backoffice integrado que funciona como **ponte** sobre os processos existentes d
 - Fluxo de curadoria técnica (Aprovado / Em Análise / Rejeitado com justificativa)
 - Gestão de feiras (cadastro, limite de vagas, mapa de alocação)
 - Rodízio automático por tempo de inatividade do artesão
-- Mensageria em massa e individual via API do WhatsApp
+- Mensageria em massa e individual via WhatsApp (Twilio)
 
 ---
 
-## Arquitetura do Monorepo
+## Arquitetura do repositório
 
 ```
 prodarte/
 ├── apps/
-│   ├── api/                    → API REST (Fastify + Prisma + PostgreSQL)
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma   → Definição dos modelos e enums do banco
-│   │   │   └── seed.ts         → Script para popular o banco em desenvolvimento
-│   │   └── src/
-│   │       ├── db/             → Queries Prisma organizadas por entidade
-│   │       ├── plugins/        → Plugins Fastify (autenticação JWT, CORS, Swagger)
-│   │       ├── rotas/          → Handlers HTTP agrupados por recurso
-│   │       ├── app.ts          → Fábrica do servidor Fastify (registra plugins e rotas)
-│   │       └── index.ts        → Ponto de entrada — inicia o servidor
-│   └── web/                    → Backoffice (Next.js 15 + Tailwind CSS)
-│       └── src/
-│           ├── app/            → App Router do Next.js (layouts, páginas, Server Actions)
-│           ├── components/     → Componentes React reutilizáveis
-│           └── lib/            → Utilitários e cliente HTTP para a API
+│   ├── api/
+│   │   ├── README.md                       → Documentação detalhada da API REST
+│   │   └── gestaoartesaos/                 → API REST (Spring Boot + JPA + PostgreSQL)
+│   │       ├── pom.xml
+│   │       ├── Dockerfile
+│   │       └── src/main/
+│   │           ├── java/com/prodarte/gestaoartesaos/
+│   │           │   ├── GestaoartesaosApplication.java
+│   │           │   ├── configs/            → Security, CORS, Twilio
+│   │           │   ├── controllers/        → Endpoints REST
+│   │           │   ├── dtos/               → Contratos de entrada e saída
+│   │           │   ├── enums/              → Enums do domínio
+│   │           │   ├── models/             → Entidades JPA
+│   │           │   ├── repositories/       → Acesso ao banco via Spring Data
+│   │           │   ├── services/           → Regras de negócio (rodízio, WhatsApp)
+│   │           │   └── specifications/     → Filtros dinâmicos de artesãos
+│   │           └── resources/
+│   │               ├── application.properties.example
+│   │               ├── data.sql              → Carga inicial em desenvolvimento
+│   │               └── certs/                → Chaves RSA para JWT
+│   └── web/
+│       └── proarte-gestao-digital/         → Backoffice (React + Vite + TanStack Start)
+│           └── src/
+│               ├── routes/                 → Páginas (login, dashboard, feiras, mensageria)
+│               ├── components/             → Layout e componentes Shadcn UI
+│               └── lib/
+│                   ├── api-client.ts       → Cliente HTTP tipado para a API
+│                   └── store.ts            → Estado global (Zustand)
 ├── packages/
-│   └── types/                  → Tipos TypeScript compartilhados entre api e web
-│       └── src/
-│           ├── artesao.ts      → Tipos e enums do domínio Artesão
-│           ├── feira.ts        → Tipos do domínio Feira e Alocação
-│           ├── curadoria.ts    → Tipos do fluxo de curadoria
-│           └── index.ts        → Re-exporta todos os tipos públicos
-├── package.json                → Configuração do npm workspaces (raiz)
-└── tsconfig.base.json          → Configuração base do TypeScript (herdada por todos)
+│   └── types/                              → Tipos TypeScript do domínio (frontend)
+├── Apresentacao_Final/
+│   └── MANUAL_DE_INSTRUCOES.md             → Guia completo de instalação e execução
+└── package.json                            → Scripts npm na raiz (pacotes compartilhados)
 ```
 
-### Por que monorepo?
-
-- `apps/api` e `apps/web` compartilham os tipos de domínio de `packages/types`
-- Evita duplicação: mudanças nos tipos são refletidas automaticamente nos dois apps
-- Um único `npm install` na raiz instala todas as dependências
-
-### Por que estrutura por camadas na API?
-
-A API segue uma divisão simples em três camadas horizontais, sem abstrações desnecessárias:
+### Camadas da API (Spring Boot)
 
 | Camada | Pasta | Responsabilidade |
 |--------|-------|-----------------|
-| **HTTP** | `src/rotas/` | Receber requisições, validar entrada com Zod, retornar respostas |
-| **Dados** | `src/db/` | Executar queries no Prisma — uma função por operação |
-| **Infraestrutura** | `src/plugins/` | Configurar JWT, CORS, Swagger e outros plugins do Fastify |
-
-Cada rota chama diretamente as funções de `db/`, sem uma camada de serviços intermediária. Isso é suficiente para o escopo atual do backoffice e mantém o código rastreável sem indireção desnecessária.
+| **HTTP** | `controllers/` | Receber requisições, validar entrada e retornar respostas |
+| **Negócio** | `services/` | Rodízio, integração WhatsApp e regras que cruzam entidades |
+| **Dados** | `repositories/` + `specifications/` | Persistência JPA e filtros dinâmicos |
+| **Infraestrutura** | `configs/` | JWT (OAuth2 Resource Server), CORS, Twilio |
 
 ---
 
@@ -83,30 +83,59 @@ Cada rota chama diretamente as funções de `db/`, sem uma camada de serviços i
 
 | Ferramenta | Versão mínima |
 |------------|---------------|
+| Java (JDK) | 21 |
+| Maven | 3.8+ (ou use o `./mvnw` incluso no projeto) |
 | Node.js    | 20.x LTS      |
 | npm        | 10.x          |
-| PostgreSQL  | 15.x          |
+| PostgreSQL | 15.x          |
+| OpenSSL    | Para gerar o par de chaves RSA do JWT |
 
 ---
 
 ## Configuração inicial
 
+### 1. Banco de dados
+
+Crie um banco vazio no PostgreSQL:
+
+```sql
+CREATE DATABASE gestaoartesaos;
+```
+
+### 2. Backend (API)
+
 ```bash
-# 1. Instalar todas as dependências do monorepo
+# 1. Gerar chaves RSA e colocá-las em apps/api/gestaoartesaos/src/main/resources/
+#    (veja Apresentacao_Final/MANUAL_DE_INSTRUCOES.md, seção 3)
+
+# 2. Configurar variáveis de ambiente
+cp apps/api/gestaoartesaos/src/main/resources/application.properties.example \
+   apps/api/gestaoartesaos/src/main/resources/application.properties
+# Edite application.properties com credenciais do PostgreSQL e Twilio (opcional)
+
+# 3. Subir a API
+cd apps/api/gestaoartesaos
+./mvnw spring-boot:run
+```
+
+A API ficará disponível em `http://localhost:8080`. O schema é criado via Hibernate (`ddl-auto=update`) e populado automaticamente pelo `data.sql`.
+
+**Login padrão (desenvolvimento):** `gestor@prodarte.com` / `Teste123`
+
+Documentação completa dos endpoints: [`apps/api/README.md`](apps/api/README.md)
+
+### 3. Frontend (backoffice)
+
+```bash
+cd apps/web/proarte-gestao-digital
+cp .env.example .env
 npm install
-
-# 2. Configurar variáveis de ambiente da API
-cp apps/api/.env.example apps/api/.env
-# Edite apps/api/.env com suas credenciais do banco de dados
-
-# 3. Criar o banco de dados e aplicar as migrations
-cd apps/api
-npx prisma migrate dev --name init
-
-# 4. Subir os dois apps em modo de desenvolvimento
-cd ../..
 npm run dev
 ```
+
+O painel ficará disponível em `http://localhost:5173`.
+
+Para instruções detalhadas (Docker, chaves RSA, troubleshooting), consulte [`Apresentacao_Final/MANUAL_DE_INSTRUCOES.md`](Apresentacao_Final/MANUAL_DE_INSTRUCOES.md).
 
 ---
 
@@ -114,7 +143,7 @@ npm run dev
 
 | Perfil | Descrição | Interface |
 |--------|-----------|-----------|
-| **Gestor PRODARTE** | Operador direto do backoffice — realiza curadoria, gerencia feiras e dispara comunicações | `apps/web` (backoffice) |
+| **Gestor PRODARTE** | Operador direto do backoffice — realiza curadoria, gerencia feiras e dispara comunicações | `apps/web/proarte-gestao-digital` |
 | **Artesão** | Usuário passivo — interage apenas via formulário externo EMPREL e notificações WhatsApp | Formulário EMPREL + WhatsApp |
 
 ---
@@ -123,8 +152,8 @@ npm run dev
 
 | Sistema | Finalidade | Status |
 |---------|-----------|--------|
-| Formulário EMPREL | Origem das inscrições e recadastramentos | Mockado (banco paralelo) |
-| API WhatsApp (Business) | Disparos individuais e em massa para artesãos | Pendente de credenciais |
+| Formulário EMPREL | Origem das inscrições e recadastramentos | Mockado (banco paralelo via `data.sql`) |
+| WhatsApp (Twilio) | Disparos individuais e em massa para artesãos | Integrado na API; credenciais configuráveis |
 
 ---
 
@@ -132,12 +161,14 @@ npm run dev
 
 | Camada | Tecnologia | Justificativa |
 |--------|-----------|---------------|
-| API | Java/Springboot | Arquitetura resiliente, robusta e requisitada pelos stakeholders |
-| ORM | Prisma | Migrations automáticas, type safety no acesso ao banco |
+| API | Java 21 + Spring Boot 4 | Arquitetura resiliente e alinhada aos stakeholders |
+| Persistência | Spring Data JPA + Hibernate | ORM maduro, integrado ao ecossistema Spring |
 | Banco | PostgreSQL | Suporte a JSON, queries complexas para filtros e rodízio |
-| Frontend | Next.js 15 (App Router) | SSR/SSG nativo, Server Actions, excelente DX |
-| Estilização | Tailwind CSS | Consistência visual sem conflitos de especificidade |
-| Tipos | @prodarte/types | Contrato único entre API e frontend |
+| Autenticação | JWT com chaves RSA (OAuth2 Resource Server) | Tokens stateless para o backoffice |
+| Frontend | React 19 + Vite + TanStack Start/Router | SPA moderna com roteamento file-based |
+| Estilização | Tailwind CSS v4 + Shadcn UI | Consistência visual e componentes acessíveis |
+| Estado | Zustand + TanStack Query | Sessão do gestor e cache de requisições |
+| Tipos | `packages/types` + `api-client.ts` | Contratos TypeScript do domínio no frontend |
 
 ---
 
