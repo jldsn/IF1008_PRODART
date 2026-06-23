@@ -132,7 +132,7 @@ npm run dev
 
 | Camada | Tecnologia | Justificativa |
 |--------|-----------|---------------|
-| API | Fastify + TypeScript | Alta performance, suporte nativo a schemas e plugins |
+| API | Java/Springboot | Arquitetura resiliente, robusta e requisitada pelos stakeholders |
 | ORM | Prisma | Migrations automáticas, type safety no acesso ao banco |
 | Banco | PostgreSQL | Suporte a JSON, queries complexas para filtros e rodízio |
 | Frontend | Next.js 15 (App Router) | SSR/SSG nativo, Server Actions, excelente DX |
