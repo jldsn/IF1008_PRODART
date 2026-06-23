@@ -4,11 +4,14 @@
   "private": true,
   "description": "Plataforma de backoffice para gestão do programa PRODARTE — Prefeitura do Recife",
   "workspaces": [
-    "apps/*",
+    "apps/web/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
+    "setup:keys": "bash scripts/generate-jwt-keys.sh",
+    "dev": "npm run dev -w apps/web/proarte-gestao-digital",
+    "dev:web": "npm run dev -w apps/web/proarte-gestao-digital",
+    "dev:api": "cd apps/api/gestaoartesaos && ./mvnw spring-boot:run",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

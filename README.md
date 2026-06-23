@@ -65,7 +65,9 @@ prodarte/
 │   └── types/                              → Tipos TypeScript do domínio (frontend)
 ├── Apresentacao_Final/
 │   └── MANUAL_DE_INSTRUCOES.md             → Guia completo de instalação e execução
-└── package.json                            → Scripts npm na raiz (pacotes compartilhados)
+├── scripts/
+│   └── generate-jwt-keys.sh                → Gera par RSA para JWT (setup inicial)
+└── package.json                            → Scripts npm (frontend e setup)
 ```
 
 ### Camadas da API (Spring Boot)
@@ -94,7 +96,19 @@ prodarte/
 
 ## Configuração inicial
 
-### 1. Banco de dados
+Na **raiz do repositório**, execute os passos abaixo na ordem.
+
+### 1. Chaves JWT (obrigatório na primeira execução)
+
+A API assina tokens com um par de chaves RSA. A chave privada não é versionada — gere o par localmente:
+
+```bash
+npm run setup:keys
+```
+
+Isso cria `dev-private.key` e `dev-public.pub` em `apps/api/gestaoartesaos/src/main/resources/certs/`.
+
+### 2. Banco de dados
 
 Crie um banco vazio no PostgreSQL:
 
@@ -102,20 +116,14 @@ Crie um banco vazio no PostgreSQL:
 CREATE DATABASE gestaoartesaos;
 ```
 
-### 2. Backend (API)
+### 3. Backend (API)
 
 ```bash
-# 1. Gerar chaves RSA e colocá-las em apps/api/gestaoartesaos/src/main/resources/
-#    (veja Apresentacao_Final/MANUAL_DE_INSTRUCOES.md, seção 3)
-
-# 2. Configurar variáveis de ambiente
 cp apps/api/gestaoartesaos/src/main/resources/application.properties.example \
    apps/api/gestaoartesaos/src/main/resources/application.properties
 # Edite application.properties com credenciais do PostgreSQL e Twilio (opcional)
 
-# 3. Subir a API
-cd apps/api/gestaoartesaos
-./mvnw spring-boot:run
+npm run dev:api
 ```
 
 A API ficará disponível em `http://localhost:8080`. O schema é criado via Hibernate (`ddl-auto=update`) e populado automaticamente pelo `data.sql`.
@@ -124,18 +132,19 @@ A API ficará disponível em `http://localhost:8080`. O schema é criado via Hib
 
 Documentação completa dos endpoints: [`apps/api/README.md`](apps/api/README.md)
 
-### 3. Frontend (backoffice)
+### 4. Frontend (backoffice)
+
+Em outro terminal, na raiz do repositório:
 
 ```bash
-cd apps/web/proarte-gestao-digital
-cp .env.example .env
 npm install
+cp apps/web/proarte-gestao-digital/.env.example apps/web/proarte-gestao-digital/.env
 npm run dev
 ```
 
 O painel ficará disponível em `http://localhost:5173`.
 
-Para instruções detalhadas (Docker, chaves RSA, troubleshooting), consulte [`Apresentacao_Final/MANUAL_DE_INSTRUCOES.md`](Apresentacao_Final/MANUAL_DE_INSTRUCOES.md).
+Para instruções detalhadas (Docker, troubleshooting), consulte [`Apresentacao_Final/MANUAL_DE_INSTRUCOES.md`](Apresentacao_Final/MANUAL_DE_INSTRUCOES.md).
 
 ---
 

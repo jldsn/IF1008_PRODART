@@ -1,73 +1,112 @@
-# Documentação da API - Gestão de Artesãos
+# Documentação da API — Gestão de Artesãos
 
-Esta é uma API construída com **Spring Boot** para gerenciar artesãos, curadorias (aprovação/rejeição), feiras e alocação de artesãos em feiras. O sistema conta com segurança baseada em **JWT (JSON Web Token)** e integração com a API do WhatsApp.
+API REST em **Spring Boot** para gerenciar artesãos, curadoria, feiras, alocações, rodízio e mensageria WhatsApp.
 
-## 🛠️ Tecnologias Utilizadas
-
-* **Java** (JDK 17+)
-* **Spring Boot** (Web, Data JPA, Security, OAuth2 Resource Server)
-* **PostgreSQL** (Banco de dados relacional)
-* **Lombok** (Redução de boilerplate)
+**Código-fonte:** [`gestaoartesaos/`](gestaoartesaos/)
 
 ---
 
-## 🚀 Como Rodar o Projeto
+## Tecnologias
 
-### 1. Pré-requisitos
+| Tecnologia | Uso |
+|------------|-----|
+| Java 21 | Linguagem e runtime |
+| Spring Boot 4 | Web MVC, validação, segurança |
+| Spring Data JPA | Persistência com PostgreSQL |
+| Spring Security + OAuth2 Resource Server | JWT com chaves RSA |
+| Lombok | Redução de boilerplate |
+| Twilio SDK | Envio de mensagens WhatsApp |
 
-* Ter o **Java (JDK 17 ou superior)** instalado.
-* Ter o **Maven** instalado (ou utilizar o *wrapper* `mvnw` do projeto).
-* Ter o **PostgreSQL** instalado e rodando na porta padrão (`5432`).
+---
 
-### 2. Configuração das variáveis de ambiente
+## Como rodar
 
-Acesses o arquivo `application.properties.example` realize uma cópia e configure de arcordo com o ambiente no qual você está executando:
+### Pré-requisitos
 
-* **URL:** `jdbc:postgresql:{URL_BANCO_POSTGRESQL}`
-* **Usuário:** `usuario-do-banco(padrão: postgres)`
-* **Senha:** `sua-senha`
+- **JDK 21**
+- **PostgreSQL 15+** (porta `5432`)
+- **OpenSSL** (para gerar chaves JWT na primeira execução)
 
+Maven não precisa estar instalado — use o wrapper `./mvnw` incluso em `gestaoartesaos/`.
 
+### 1. Gerar chaves JWT
 
-### 3. Executando a Aplicação
-
-O projeto está configurado para inicializar o banco e popular dados automaticamente a partir do arquivo `data.sql` (`spring.sql.init.mode=always`).
-
-Para rodar a aplicação, abra o terminal na raiz do projeto e execute:
+Na **raiz do repositório**:
 
 ```bash
-mvn spring-boot:run
-
+npm run setup:keys
 ```
 
-Ou, se estiver usando uma IDE (como IntelliJ, Eclipse ou VS Code), basta rodar a classe principal `GestaoartesaosApplication.java`.
+Isso cria o par `dev-private.key` / `dev-public.pub` em `gestaoartesaos/src/main/resources/certs/`. A chave privada fica fora do Git por segurança.
 
-A aplicação estará disponível em: `http://localhost:8080`.
+### 2. Configurar o banco
+
+```sql
+CREATE DATABASE gestaoartesaos;
+```
+
+Copie e edite as propriedades:
+
+```bash
+cp gestaoartesaos/src/main/resources/application.properties.example \
+   gestaoartesaos/src/main/resources/application.properties
+```
+
+Ajuste `spring.datasource.url`, `username` e `password`. Credenciais Twilio são opcionais para desenvolvimento local.
+
+### 3. Subir a API
+
+Na raiz do repositório:
+
+```bash
+npm run dev:api
+```
+
+Ou, dentro de `gestaoartesaos/`:
+
+```bash
+./mvnw spring-boot:run
+```
+
+A API estará em **`http://localhost:8080`**.
+
+O Hibernate cria/atualiza o schema (`ddl-auto=update`) e o `data.sql` popula dados de desenvolvimento (`spring.sql.init.mode=always`).
+
+**Gestor padrão:** `gestor@prodarte.com` / `Teste123`
 
 ---
 
-## 🔐 Autenticação e Autorização
+## Autenticação
 
-A API utiliza **Tokens JWT**.
+A API usa **JWT** assinado com RSA.
 
-1. Crie um usuário ou use o gestor padrão (injetado via `data.sql`: `gestor@prodarte.com` / senha do hash no banco).
-2. Faça login em `/auth/login` para obter o `accessToken`.
-3. Nas requisições protegidas, envie o token no cabeçalho HTTP:
-`Authorization: Bearer <seu_token_aqui>`
+1. Faça login em `POST /auth/login` ou use o gestor padrão acima.
+2. Envie o token nas rotas protegidas:
 
-> **Nota:** Apenas os endpoints de Criação de Usuário e Login são públicos. Todos os outros exigem autenticação.
+```
+Authorization: Bearer <accessToken>
+```
+
+### Endpoints públicos
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/usuario` | Criar usuário gestor |
+| POST | `/auth/login` | Obter JWT |
+| POST | `/artesao` | Nova inscrição de artesão (simula formulário EMPREL) |
+
+Demais rotas exigem autenticação.
 
 ---
 
-## 📡 Endpoints da API
+## Endpoints
 
-### 👤 Autenticação e Usuários
+### Autenticação e usuários
 
-#### 1. Criar Usuário (Público)
+#### POST `/usuario` (público)
 
-* **POST** `/usuario`
-* **Descrição:** Cria um novo usuário com a permissão (Role) básica (`BASIC`).
-* **Corpo da Requisição (JSON):**
+Cria um usuário com role `BASIC`.
+
 ```json
 {
   "name": "Nome do Usuário",
@@ -75,26 +114,19 @@ A API utiliza **Tokens JWT**.
   "password": "senha123",
   "telefone": "5581999999999"
 }
-
 ```
 
+#### POST `/auth/login` (público)
 
-
-#### 2. Login (Público)
-
-* **POST** `/auth/login`
-* **Descrição:** Autentica um usuário e retorna o Token JWT.
-* **Corpo da Requisição (JSON):**
 ```json
 {
   "email": "usuario@email.com",
   "password": "senha123"
 }
-
 ```
 
+Resposta:
 
-* **Resposta de Sucesso:**
 ```json
 {
   "accessToken": "eyJhbGciOi...",
@@ -102,77 +134,56 @@ A API utiliza **Tokens JWT**.
   "email": "usuario@email.com",
   "nome": "Nome do Usuário"
 }
-
 ```
-
-
 
 ---
 
-### 🎨 Artesãos
+### Artesãos
 
-#### 3. Listar Artesãos (Protegido)
+#### POST `/artesao` (público)
 
-* **GET** `/artesao`
-* **Descrição:** Retorna a lista de artesãos cadastrados. Suporta filtros via Query Parameters e ordenação.
-* **Parâmetros de Busca (Opcionais):** `nome`, `email`, `segmento`, `telefone`, `bairro`, `possuiMei`, `statusCuradoria`, `estado`, `categoria`.
-* **Exemplo de Uso:** `/artesao?statusCuradoria=APROVADO&segmento=ARTESANATO`
+Registra nova inscrição com status `EM_ANALISE`.
 
-#### 4. Buscar Artesão por ID (Protegido)
+#### GET `/artesao`
 
-* **GET** `/artesao/{id}`
-* **Descrição:** Retorna os detalhes de um artesão específico.
+Lista artesãos com filtros opcionais: `nome`, `email`, `segmento`, `telefone`, `bairro`, `possuiMei`, `statusCuradoria`, `estado`, `categoria`.
 
-#### 5. Atualizar Artesão (Protegido)
+Exemplo: `/artesao?statusCuradoria=APROVADO&segmento=ARTESANATO`
 
-* **PATCH** `/artesao/{id}`
-* **Descrição:** Atualiza dados parciais de um artesão existente.
-* **Corpo da Requisição (Apenas os campos que deseja alterar):**
-```json
-{
-  "telefone": "5581988887777",
-  "bairro": "Novo Bairro",
-  "descricaoProduto": "Nova descrição..."
-}
+#### GET `/artesao/{id}`
 
-```
+Retorna detalhes de um artesão.
 
+#### PATCH `/artesao/{id}`
 
+Atualização parcial (telefone, endereço, dados do negócio, etc.).
 
 ---
 
-### 🔍 Curadoria
+### Curadoria
 
-A curadoria muda o status do artesão e dispara automaticamente mensagens via WhatsApp.
+Dispara mensagens WhatsApp automaticamente ao aprovar ou rejeitar.
 
-#### 6. Aprovar Artesão (Protegido)
+#### POST `/curadoria/aprovar/{id}`
 
-* **POST** `/curadoria/aprovar/{id}`
-* **Descrição:** Aprova o cadastro de um artesão (Muda o status para `APROVADO`) e envia mensagem de boas-vindas. O Gestor logado no momento é registrado como responsável pela curadoria.
+Aprova o artesão (`APROVADO`) e registra o gestor logado como responsável.
 
-#### 7. Rejeitar Artesão (Protegido)
+#### POST `/curadoria/rejeitar/{id}`
 
-* **POST** `/curadoria/rejeitar/{id}`
-* **Descrição:** Rejeita o cadastro de um artesão (Muda o status para `REPROVADO`) com uma justificativa.
-* **Corpo da Requisição (JSON):**
+Rejeita o artesão (`REPROVADO`) com justificativa:
+
 ```json
 {
   "justificativa": "Faltam documentos sanitários obrigatórios."
 }
-
 ```
-
-
 
 ---
 
-### 🎪 Feiras e Alocações
+### Feiras e alocações
 
-#### 8. Criar Feira (Protegido)
+#### POST `/feira`
 
-* **POST** `/feira`
-* **Descrição:** Cadastra uma nova feira no sistema.
-* **Corpo da Requisição (JSON):**
 ```json
 {
   "nome": "Feira de Domingo",
@@ -180,36 +191,117 @@ A curadoria muda o status do artesão e dispara automaticamente mensagens via Wh
   "local": "Praça Central",
   "limiteVagas": 20
 }
-
 ```
 
+#### GET `/feira`
 
+Lista todas as feiras.
 
-#### 9. Listar Feiras (Protegido)
+#### PATCH `/feira/{id}`
 
-* **GET** `/feira`
-* **Descrição:** Retorna todas as feiras cadastradas.
+Atualiza feira. Alterar `limiteVagas` recalcula `vagasRestantes` proporcionalmente.
 
-#### 10. Atualizar Feira (Protegido)
+#### POST `/feira/{feiraId}/alocar/{artesaoId}`
 
-* **PATCH** `/feira/{id}`
-* **Descrição:** Atualiza dados de uma feira. Se o limite de vagas for alterado, o sistema recalcula proporcionalmente as vagas restantes.
-* **Corpo da Requisição (Exemplo):**
+Aloca artesão aprovado em feira com vagas disponíveis. Não permite alocação duplicada na mesma feira.
+
+---
+
+### Rodízio
+
+#### GET `/rodizio/ranking?feiraId={uuid}`
+
+Retorna ranking de artesãos para alocação justa na feira informada.
+
+---
+
+### Mensagens (WhatsApp)
+
+#### GET `/mensagens/tipos`
+
+Lista os valores do enum `TipoMensagem`.
+
+#### GET `/mensagens`
+
+Lista histórico de mensagens enviadas (ordenado por data).
+
+#### POST `/mensagens`
+
+Envio em massa para artesãos selecionados:
+
 ```json
 {
-  "local": "Novo Endereço da Feira",
-  "limiteVagas": 25
+  "assunto": "Comunicado PRODARTE",
+  "conteudo": "Texto da mensagem...",
+  "tipo": "COMUNICADO",
+  "artesaoIds": [1, 2, 3]
 }
-
 ```
 
-#### 11. Alocar Artesão em uma Feira (Protegido)
+#### POST `/mensagens/teste`
 
-* **POST** `/feira/{feiraId}/alocar/{artesaoId}`
-* **Descrição:** Aloca um artesão aprovado em uma feira. Reduz o número de `vagasRestantes` na feira.
-* **Regras:**
-* A feira deve ter vagas disponíveis.
-* O artesão **deve** estar com o status `APROVADO` na curadoria.
-* O artesão não pode ser alocado duas vezes na mesma feira.
+Envio de teste para um número (integração Twilio):
 
+```json
+{
+  "numero": "5581999999999",
+  "mensagem": "Mensagem de teste"
+}
+```
 
+---
+
+### Cursos
+
+#### POST `/curso`
+
+Associa curso concluído a um artesão:
+
+```json
+{
+  "nome": "Costura Criativa",
+  "dataConclusao": "2025-06-15T00:00:00",
+  "artesaoId": 1
+}
+```
+
+#### DELETE `/curso/{id}`
+
+Remove curso do artesão.
+
+---
+
+## Estrutura do projeto
+
+```
+gestaoartesaos/
+├── pom.xml
+├── Dockerfile
+└── src/main/java/com/prodarte/gestaoartesaos/
+    ├── GestaoartesaosApplication.java
+    ├── configs/          → Security, CORS, Twilio
+    ├── controllers/      → Endpoints REST
+    ├── dtos/             → Request/response
+    ├── enums/            → Domínio (Segmento, StatusCuradoria, etc.)
+    ├── models/           → Entidades JPA
+    ├── repositories/     → Spring Data
+    ├── services/         → Rodízio, WhatsApp
+    └── specifications/   → Filtros dinâmicos de artesãos
+```
+
+---
+
+## Variáveis de ambiente (`application.properties`)
+
+| Propriedade | Descrição |
+|-------------|-----------|
+| `jwt.public.key` | Caminho da chave pública RSA |
+| `jwt.private.key` | Caminho da chave privada RSA |
+| `spring.datasource.url` | JDBC PostgreSQL |
+| `spring.datasource.username` | Usuário do banco |
+| `spring.datasource.password` | Senha do banco |
+| `twilio.account-sid` | SID Twilio (opcional em dev) |
+| `twilio.auth-token` | Token Twilio |
+| `twilio.whatsapp-number` | Número remetente (`whatsapp:+...`) |
+
+Modelo completo: [`gestaoartesaos/src/main/resources/application.properties.example`](gestaoartesaos/src/main/resources/application.properties.example)

@@ -1,4 +1,7 @@
 spring.application.name=gestaoartesaos
+
+# Chaves RSA para JWT — gere o par na raiz do repositório com: npm run setup:keys
+# Os arquivos devem existir em src/main/resources/certs/ (dev-private.key fica fora do Git)
 jwt.public.key=classpath:certs/dev-public.pub
 jwt.private.key=classpath:certs/dev-private.key
 
